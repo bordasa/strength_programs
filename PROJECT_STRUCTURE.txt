@@ -1,0 +1,50 @@
+/Users/abordas/projects/cursor/strength_programs
+|-- GETTING_STARTED.md
+|-- PROJECT_STRUCTURE.txt
+|-- README.md
+|-- backend
+|   |-- Dockerfile
+|   |-- alembic
+|   |   |-- env.py
+|   |   |-- script.py.mako
+|   |   `-- versions
+|   |-- alembic.ini
+|   |-- app
+|   |   |-- __init__.py
+|   |   |-- api
+|   |   |-- core
+|   |   |-- db
+|   |   |-- main.py
+|   |   |-- models
+|   |   |-- programs
+|   |   |-- schemas
+|   |   `-- services
+|   |-- env.example
+|   |-- requirements.txt
+|   `-- tests
+|-- docker-compose.yml
+|-- docs
+|   `-- build-plan.md
+|-- frontend
+|   |-- Dockerfile
+|   |-- index.html
+|   |-- package.json
+|   |-- postcss.config.js
+|   |-- public
+|   |-- src
+|   |   |-- App.tsx
+|   |   |-- components
+|   |   |-- hooks
+|   |   |-- index.css
+|   |   |-- main.tsx
+|   |   |-- pages
+|   |   |-- services
+|   |   |-- types
+|   |   `-- utils
+|   |-- tailwind.config.js
+|   |-- tsconfig.json
+|   |-- tsconfig.node.json
+|   `-- vite.config.ts
+`-- theBattleship.py
+
+23 directories, 25 files
