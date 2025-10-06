@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Any
 from app.models.program import Program, ProgramConfig, ProgramWeek, ProgramType, ProgramStatus
 from app.schemas.program import ProgramCreate
 from app.programs.battleship import generate_battleship_program
-from random import randint
+from random import choice
 
 
 class ProgramService:
@@ -144,9 +144,11 @@ class ProgramService:
             print(f"Rerolling {lift}: current roll = {current_roll}")
             
             # Generate new roll (ensure it's different)
+            # Using 4-sided dice with values [1, 2, 4, 6]
+            DICE_VALUES = [1, 2, 4, 6]
             new_roll = current_roll
             while new_roll == current_roll:
-                new_roll = (randint(1, 6), randint(1, 6))
+                new_roll = (choice(DICE_VALUES), choice(DICE_VALUES))
             
             print(f"Rerolling {lift}: new roll = {new_roll}")
             

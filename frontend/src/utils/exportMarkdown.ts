@@ -1,0 +1,173 @@
+import { Program } from '../types';
+import { assignReps, formatRepScheme } from './repLadder';
+
+interface ExportOptions {
+  includeCoachInfo: boolean; // dice rolls, RMs, etc.
+}
+
+export function generateMarkdown(program: Program, options: ExportOptions): string {
+  const { includeCoachInfo } = options;
+  const programName = program.name || 'The Battleship Program';
+  const config = program.config;
+  const weeks = program.weeks || [];
+  const template = config?.weekly_template;
+  
+  let markdown = '';
+  
+  // Header
+  markdown += `# ${programName}\n\n`;
+  markdown += `**Program Type:** Battleship\n`;
+  markdown += `**Duration:** 8 Weeks\n`;
+  markdown += `**Lifts:** ${config?.num_lifts}\n`;
+  markdown += `**Sessions per Week:** ${template?.sessions_per_week}\n`;
+  markdown += `**Status:** ${program.status.toUpperCase()}\n`;
+  
+  if (includeCoachInfo) {
+    markdown += `\n---\n`;
+    markdown += `## Coach's Notes\n\n`;
+    markdown += `This view includes all program details including dice rolls and rep maxes.\n`;
+  }
+  
+  markdown += `\n---\n\n`;
+  
+  // Lift Configuration (Coach view only)
+  if (includeCoachInfo && config?.lift_weights && config?.lift_intensity_rms) {
+    markdown += `## Lift Configuration\n\n`;
+    const lifts = Object.keys(config.lift_rms);
+    
+    for (const lift of lifts) {
+      const liftName = lift.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      markdown += `### ${liftName}\n\n`;
+      markdown += `| Intensity | Weight | RM |\n`;
+      markdown += `|-----------|--------|----|\n`;
+      markdown += `| Heavy (85% 1RM) | ${config.lift_weights[lift]?.H || 0} lbs | ${config.lift_intensity_rms[lift]?.H || 0} reps |\n`;
+      markdown += `| Medium (75% 1RM) | ${config.lift_weights[lift]?.M || 0} lbs | ${config.lift_intensity_rms[lift]?.M || 0} reps |\n`;
+      markdown += `| Light (65% 1RM) | ${config.lift_weights[lift]?.L || 0} lbs | ${config.lift_intensity_rms[lift]?.L || 0} reps |\n`;
+      markdown += `\n`;
+    }
+    
+    markdown += `---\n\n`;
+  }
+  
+  // Week by week breakdown
+  for (let weekNum = 1; weekNum <= 8; weekNum++) {
+    const week = weeks.find(w => w.week_number === weekNum);
+    if (!week) continue;
+    
+    markdown += `## Week ${weekNum}\n\n`;
+    
+    // Dice rolls (Coach view only)
+    if (includeCoachInfo && week.dice_rolls) {
+      markdown += `**Dice Rolls:**\n\n`;
+      for (const [lift, rolls] of Object.entries(week.dice_rolls)) {
+        const liftName = lift.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        markdown += `- ${liftName}: 🎲 ${rolls[0]}, ${rolls[1]}\n`;
+      }
+      markdown += `\n`;
+    }
+    
+    // Sessions
+    if (template?.sessions) {
+      const sessionNames = Object.keys(template.sessions).sort();
+      
+      for (const sessionName of sessionNames) {
+        markdown += `### Session ${sessionName}\n\n`;
+        
+        const sessionLifts = template.sessions[sessionName];
+        
+        // Organize lifts by intensity (H, M, L)
+        const liftsWithIntensity: Array<{
+          lift: string;
+          intensity: string;
+          totalReps: number;
+          weight: number;
+          rm: number;
+        }> = [];
+        
+        for (const [lift, intensity] of Object.entries(sessionLifts)) {
+          const totalReps = week.weekly_data?.[lift]?.[intensity as string] || 0;
+          const weight = config?.lift_weights?.[lift]?.[intensity as string] || 0;
+          const rm = config?.lift_intensity_rms?.[lift]?.[intensity as string] || config?.lift_rms?.[lift] || 10;
+          
+          liftsWithIntensity.push({
+            lift,
+            intensity: intensity as string,
+            totalReps,
+            weight,
+            rm
+          });
+        }
+        
+        // Sort by intensity: H first, then M, then L
+        const intensityOrder: Record<string, number> = { 'H': 1, 'M': 2, 'L': 3 };
+        liftsWithIntensity.sort((a, b) => {
+          return (intensityOrder[a.intensity] || 99) - (intensityOrder[b.intensity] || 99);
+        });
+        
+        // Output each lift
+        for (const { lift, intensity, totalReps, weight, rm } of liftsWithIntensity) {
+          const liftName = lift.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          const intensityName = intensity === 'H' ? 'Heavy' : intensity === 'M' ? 'Medium' : 'Light';
+          const repScheme = assignReps(rm, totalReps, intensity as 'H' | 'M' | 'L');
+          
+          markdown += `#### ${liftName} - ${intensityName}\n\n`;
+          markdown += `- **Weight:** ${weight} lbs\n`;
+          markdown += `- **Total Reps:** ${totalReps}\n`;
+          
+          if (includeCoachInfo) {
+            markdown += `- **RM at this weight:** ${rm} reps\n`;
+          }
+          
+          markdown += `- **Suggested Rep Scheme:** ${formatRepScheme(repScheme)}\n`;
+          
+          if (!includeCoachInfo) {
+            markdown += `\n> Complete ${totalReps} total reps at ${weight} lbs. Adjust sets/reps as needed.\n`;
+          }
+          
+          markdown += `\n`;
+        }
+      }
+    }
+    
+    markdown += `---\n\n`;
+  }
+  
+  // Footer
+  markdown += `## Notes\n\n`;
+  
+  if (includeCoachInfo) {
+    markdown += `- This is the coach's view with complete program details\n`;
+    markdown += `- Dice rolls determine the total reps (NL) for each lift at each intensity\n`;
+    markdown += `- Rep schemes are calculated based on the athlete's RM at each weight\n`;
+    markdown += `- Athletes can adjust set/rep schemes as long as total reps are completed\n`;
+  } else {
+    markdown += `- Complete the total reps listed for each exercise\n`;
+    markdown += `- Use the suggested rep scheme or adjust as needed\n`;
+    markdown += `- Rest 2-3 minutes between sets for heavy lifts\n`;
+    markdown += `- Rest 1-2 minutes between sets for medium/light lifts\n`;
+    markdown += `- Track your completed sets and reps for each session\n`;
+  }
+  
+  markdown += `\n---\n\n`;
+  markdown += `*Generated by Strength Programs - Battleship Program Generator*\n`;
+  
+  return markdown;
+}
+
+export function downloadMarkdown(program: Program, includeCoachInfo: boolean) {
+  const markdown = generateMarkdown(program, { includeCoachInfo });
+  const viewType = includeCoachInfo ? 'coach' : 'athlete';
+  const programName = program.name || 'battleship_program';
+  const filename = `${programName.toLowerCase().replace(/\s+/g, '_')}_${viewType}_view.md`;
+  
+  // Create blob and download
+  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}

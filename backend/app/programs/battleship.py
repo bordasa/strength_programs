@@ -2,7 +2,7 @@
 The Battleship Program - Core Logic
 Migrated from theBattleship.py
 """
-from random import randint
+from random import randint, choice
 import copy
 from typing import Dict, List, Tuple
 
@@ -80,10 +80,16 @@ def weekly_rolls(lifts_dict: Dict[str, List], weeks: int = WEEKS) -> Dict[str, L
 
 
 def find_next_roll_tup(lifts_dict: Dict[str, List], lift: str, week: int) -> Tuple[int, int]:
-    """Find next dice roll tuple ensuring it's different from previous week."""
+    """
+    Generate dice rolls using 4-sided dice with values [1, 2, 4, 6].
+    These represent the 4 distinct intensity categories in the lookup table.
+    Ensures each week's roll is different from the previous week.
+    """
+    DICE_VALUES = [1, 2, 4, 6]
+    
     while True:
-        roll_1 = randint(1, 6)
-        roll_2 = randint(1, 6)
+        roll_1 = choice(DICE_VALUES)
+        roll_2 = choice(DICE_VALUES)
         roll_tup = (roll_1, roll_2)
         if week == 0:
             return roll_tup

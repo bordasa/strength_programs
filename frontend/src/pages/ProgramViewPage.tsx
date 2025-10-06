@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { programsAPI } from '../services/api';
 import { Program } from '../types';
 import { assignReps, formatRepScheme } from '../utils/repLadder';
+import { downloadMarkdown } from '../utils/exportMarkdown';
 
 export default function ProgramViewPage() {
   const { id } = useParams<{ id: string }>();
@@ -148,6 +149,31 @@ export default function ProgramViewPage() {
               </div>
             </div>
             <div className="flex space-x-2">
+              {/* Export Dropdown */}
+              <div className="relative group">
+                <button
+                  className="px-4 py-2 bg-white text-gray-900 font-medium rounded-lg border-2 border-gray-900 hover:bg-gray-50 transition"
+                >
+                  📥 Download
+                </button>
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                  <button
+                    onClick={() => downloadMarkdown(program, true)}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm border-b border-gray-200"
+                  >
+                    <div className="font-medium text-gray-900">Coach's View</div>
+                    <div className="text-xs text-gray-600">Includes dice rolls & RMs</div>
+                  </button>
+                  <button
+                    onClick={() => downloadMarkdown(program, false)}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm"
+                  >
+                    <div className="font-medium text-gray-900">Athlete's View</div>
+                    <div className="text-xs text-gray-600">Clean workout plan only</div>
+                  </button>
+                </div>
+              </div>
+              
               {program.status === 'draft' && (
                 <button
                   onClick={() => setShowSaveModal(true)}
