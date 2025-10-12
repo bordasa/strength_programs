@@ -37,8 +37,9 @@ export interface ProgramConfig {
   program_id: string;
   num_lifts: number;
   lift_rms: Record<string, number>;
-  lift_weights?: Record<string, Record<string, number>>;
+  lift_weights?: Record<string, Record<string, number | string>>;
   lift_intensity_rms?: Record<string, Record<string, number>>;
+  lift_names?: Record<string, string>;
   weekly_template: any;
   created_at: string;
 }

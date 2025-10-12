@@ -9,7 +9,7 @@ const LIFT_NAMES = {
   6: ['horz_press', 'horz_pull', 'vert_press', 'vert_pull', 'hinge', 'squat']
 };
 
-const LIFT_LABELS: Record<string, string> = {
+export const LIFT_LABELS: Record<string, string> = {
   upper_body_press: 'Upper Body Press',
   upper_body_pull: 'Upper Body Pull',
   squat: 'Squat',
@@ -21,11 +21,23 @@ const LIFT_LABELS: Record<string, string> = {
   hinge: 'Hip Hinge'
 };
 
+const LIFT_EXAMPLES: Record<string, string> = {
+  upper_body_press: 'e.g., Bench Press, Military Press, etc.',
+  upper_body_pull: 'e.g., Chin Up, Pendlay Row, etc.',
+  squat: 'e.g., Back Squat, Zercher Squat, etc.',
+  hip_hinge: 'e.g., Deadlift, Good Morning, etc.',
+  horz_press: 'e.g., Bench Press, Floor Press, etc.',
+  horz_pull: 'e.g., Pendlay Row, One-Arm Row, etc.',
+  vert_press: 'e.g., Military Press, KB MP, etc.',
+  vert_pull: 'e.g., Pull Up, Chin Up, etc.',
+  hinge: 'e.g., Deadlift, Good Morning, etc.'
+};
+
 interface LiftData {
   weights: {
-    H: number;  // 85% 1RM
-    M: number;  // 75% 1RM
-    L: number;  // 65% 1RM
+    H: number | string;  // 85% 1RM or variation (e.g., "225" or "Push Ups")
+    M: number | string;  // 75% 1RM or variation
+    L: number | string;  // 65% 1RM or variation
   };
   rms: {
     H: number;  // RM at heavy weight
@@ -42,6 +54,7 @@ export default function CreateProgramPage() {
   const [numLifts, setNumLifts] = useState<3 | 4 | 6>(4);
   const [sessionsPerWeek, setSessionsPerWeek] = useState<number>(3);
   const [liftData, setLiftData] = useState<Record<string, LiftData>>({});
+  const [liftNames, setLiftNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -51,13 +64,16 @@ export default function CreateProgramPage() {
   const handleLiftChange = (newNumLifts: 3 | 4 | 6) => {
     setNumLifts(newNumLifts);
     const newData: Record<string, LiftData> = {};
+    const newNames: Record<string, string> = {};
     LIFT_NAMES[newNumLifts].forEach(lift => {
       newData[lift] = {
-        weights: { H: 0, M: 0, L: 0 },
+        weights: { H: '', M: '', L: '' },
         rms: { H: 10, M: 10, L: 10 }
       };
+      newNames[lift] = '';  // Initialize empty custom names
     });
     setLiftData(newData);
+    setLiftNames(newNames);
     
     // Auto-select sessions per week
     if (newNumLifts === 3) {
@@ -70,24 +86,27 @@ export default function CreateProgramPage() {
   // Initialize on mount
   if (Object.keys(liftData).length === 0) {
     const initialData: Record<string, LiftData> = {};
+    const initialNames: Record<string, string> = {};
     lifts.forEach(lift => {
       initialData[lift] = {
-        weights: { H: 0, M: 0, L: 0 },
+        weights: { H: '', M: '', L: '' },
         rms: { H: 10, M: 10, L: 10 }
       };
+      initialNames[lift] = '';
     });
     setLiftData(initialData);
+    setLiftNames(initialNames);
   }
 
   const updateWeight = (lift: string, intensity: 'H' | 'M' | 'L', value: string) => {
-    const weight = parseFloat(value) || 0;
+    // Accept both numbers and strings (e.g., "225" or "Push Ups")
     setLiftData(prev => ({
       ...prev,
       [lift]: {
         ...prev[lift],
         weights: {
           ...prev[lift].weights,
-          [intensity]: weight
+          [intensity]: value
         }
       }
     }));
@@ -107,12 +126,19 @@ export default function CreateProgramPage() {
     }));
   };
 
+  const updateLiftName = (lift: string, name: string) => {
+    setLiftNames(prev => ({
+      ...prev,
+      [lift]: name
+    }));
+  };
+
   const handleNext = () => {
     // Validate step 1
     for (const lift of lifts) {
       const data = liftData[lift];
-      if (!data || data.weights.H === 0 || data.weights.M === 0 || data.weights.L === 0) {
-        setError('Please enter weights for all lifts at all intensities');
+      if (!data || !data.weights.H || !data.weights.M || !data.weights.L) {
+        setError('Please enter weights or variations for all lifts at all intensities');
         return;
       }
     }
@@ -159,6 +185,14 @@ export default function CreateProgramPage() {
         };
       });
 
+      // Prepare lift names (only send non-empty custom names)
+      const custom_lift_names: Record<string, string> = {};
+      lifts.forEach(lift => {
+        if (liftNames[lift] && liftNames[lift].trim() !== '') {
+          custom_lift_names[lift] = liftNames[lift].trim();
+        }
+      });
+
       const program = await programsAPI.create({
         name: programName || undefined,
         athlete_id: user!.athlete_id!,
@@ -167,6 +201,7 @@ export default function CreateProgramPage() {
         lift_rms: lift_rms,
         lift_weights: lift_weights,
         lift_intensity_rms: lift_intensity_rms,
+        lift_names: Object.keys(custom_lift_names).length > 0 ? custom_lift_names : undefined,
         sessions_per_week: sessionsPerWeek
       });
 
@@ -296,70 +331,63 @@ export default function CreateProgramPage() {
               {/* Weights for Each Lift */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  Step 1: Enter Training Weights
+                  Step 1: Enter Training Weights or Variations
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Enter the weight you'll use for each lift at each intensity level:
+                  Enter the weight (e.g., "225") or variation (e.g., "Push Ups") for each intensity level:
                 </p>
                 <div className="space-y-6">
                   {lifts.map((lift) => (
                     <div key={lift} className="border border-gray-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-gray-900 mb-3 capitalize">
+                      <h4 className="font-semibold text-gray-900 mb-1 capitalize">
                         {LIFT_LABELS[lift]}
                       </h4>
+                      <div className="mb-3">
+                        <input
+                          type="text"
+                          value={liftNames[lift] || ''}
+                          onChange={(e) => updateLiftName(lift, e.target.value)}
+                          placeholder={LIFT_EXAMPLES[lift] || 'e.g., Bench Press, Back Squat, etc.'}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500 bg-gray-50"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Specify the exact exercise (optional)</p>
+                      </div>
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Heavy (85% 1RM)
                           </label>
-                          <div className="flex items-center">
-                            <input
-                              type="number"
-                              step="0.5"
-                              min="0"
-                              value={liftData[lift]?.weights.H || ''}
-                              onChange={(e) => updateWeight(lift, 'H', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-                              placeholder="0"
-                            />
-                            <span className="ml-2 text-sm text-gray-500">lbs</span>
-                          </div>
+                          <input
+                            type="text"
+                            value={liftData[lift]?.weights.H || ''}
+                            onChange={(e) => updateWeight(lift, 'H', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Medium (75% 1RM)
                           </label>
-                          <div className="flex items-center">
-                            <input
-                              type="number"
-                              step="0.5"
-                              min="0"
-                              value={liftData[lift]?.weights.M || ''}
-                              onChange={(e) => updateWeight(lift, 'M', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-                              placeholder="0"
-                            />
-                            <span className="ml-2 text-sm text-gray-500">lbs</span>
-                          </div>
+                          <input
+                            type="text"
+                            value={liftData[lift]?.weights.M || ''}
+                            onChange={(e) => updateWeight(lift, 'M', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Light (65% 1RM)
                           </label>
-                          <div className="flex items-center">
-                            <input
-                              type="number"
-                              step="0.5"
-                              min="0"
-                              value={liftData[lift]?.weights.L || ''}
-                              onChange={(e) => updateWeight(lift, 'L', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-                              placeholder="0"
-                            />
-                            <span className="ml-2 text-sm text-gray-500">lbs</span>
-                          </div>
+                          <input
+                            type="text"
+                            value={liftData[lift]?.weights.L || ''}
+                            onChange={(e) => updateWeight(lift, 'L', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                          />
                         </div>
                       </div>
+                      <p className="text-xs text-gray-500 mt-2">Specify weights or variations for each intensity</p>
                     </div>
                   ))}
                 </div>

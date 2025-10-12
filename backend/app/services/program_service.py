@@ -42,6 +42,7 @@ class ProgramService:
             lift_rms=program_data.lift_rms,
             lift_weights=program_data.lift_weights,
             lift_intensity_rms=program_data.lift_intensity_rms,
+            lift_names=program_data.lift_names,
             weekly_template=battleship_data["template"]
         )
         self.db.add(config)

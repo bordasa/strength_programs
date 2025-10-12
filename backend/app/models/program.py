@@ -49,6 +49,7 @@ class ProgramConfig(Base):
     lift_rms = Column(JSONB, nullable=False)  # {"squat": 10, "bench": 8, ...}
     lift_weights = Column(JSONB, nullable=True)  # {"squat": {"H": 225, "M": 185, "L": 155}, ...}
     lift_intensity_rms = Column(JSONB, nullable=True)  # {"squat": {"H": 10, "M": 12, "L": 15}, ...}
+    lift_names = Column(JSONB, nullable=True)  # {"squat": "Bench Press", "deadlift": "Conventional Deadlift", ...}
     weekly_template = Column(JSONB, nullable=True)  # Template structure
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     

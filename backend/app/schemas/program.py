@@ -1,15 +1,16 @@
 from pydantic import BaseModel
 from uuid import UUID
 from datetime import date, datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from app.models.program import ProgramType, ProgramStatus
 
 
 class ProgramConfigBase(BaseModel):
     num_lifts: int  # 3, 4, or 6
     lift_rms: Dict[str, int]  # {"squat": 10, "bench": 8, ...}
-    lift_weights: Optional[Dict[str, Dict[str, float]]] = None  # {"squat": {"H": 225, "M": 185, "L": 155}, ...}
+    lift_weights: Optional[Dict[str, Dict[str, Union[float, str]]]] = None  # {"squat": {"H": 225, "M": 185, "L": "Push Ups"}, ...}
     lift_intensity_rms: Optional[Dict[str, Dict[str, int]]] = None  # {"squat": {"H": 10, "M": 12, "L": 15}, ...}
+    lift_names: Optional[Dict[str, str]] = None  # {"squat": "Bench Press", "deadlift": "Conventional Deadlift", ...}
     weekly_template: Optional[Dict] = None
 
 
@@ -45,8 +46,9 @@ class ProgramCreate(BaseModel):
     created_by: UUID
     num_lifts: int
     lift_rms: Dict[str, int]
-    lift_weights: Optional[Dict[str, Dict[str, float]]] = None  # {"squat": {"H": 225, "M": 185, "L": 155}, ...}
+    lift_weights: Optional[Dict[str, Dict[str, Union[float, str]]]] = None  # {"squat": {"H": 225, "M": 185, "L": "Push Ups"}, ...}
     lift_intensity_rms: Optional[Dict[str, Dict[str, int]]] = None  # {"squat": {"H": 10, "M": 12, "L": 15}, ...}
+    lift_names: Optional[Dict[str, str]] = None  # {"squat": "Bench Press", "deadlift": "Conventional Deadlift", ...}
     sessions_per_week: Optional[int] = None
     start_date: Optional[date] = None
 

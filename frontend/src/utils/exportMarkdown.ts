@@ -1,8 +1,21 @@
 import { Program } from '../types';
 import { assignReps, formatRepScheme } from './repLadder';
+import { LIFT_LABELS } from '../pages/CreateProgramPage';
 
 interface ExportOptions {
   includeCoachInfo: boolean; // dice rolls, RMs, etc.
+}
+
+// Helper function to get display name for a lift
+function getLiftDisplayName(liftKey: string, customNames?: Record<string, string>): string {
+  // First check if there's a custom name
+  if (customNames && customNames[liftKey]) {
+    return customNames[liftKey];
+  }
+  // Fall back to default label or formatted key
+  const defaultLabel = LIFT_LABELS[liftKey] || liftKey.replace(/_/g, ' ');
+  // Capitalize first letter of each word
+  return defaultLabel.replace(/\b\w/g, l => l.toUpperCase());
 }
 
 export function generateMarkdown(program: Program, options: ExportOptions): string {
@@ -36,13 +49,16 @@ export function generateMarkdown(program: Program, options: ExportOptions): stri
     const lifts = Object.keys(config.lift_rms);
     
     for (const lift of lifts) {
-      const liftName = lift.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const liftName = getLiftDisplayName(lift, config.lift_names);
       markdown += `### ${liftName}\n\n`;
       markdown += `| Intensity | Weight | RM |\n`;
       markdown += `|-----------|--------|----|\n`;
-      markdown += `| Heavy (85% 1RM) | ${config.lift_weights[lift]?.H || 0} lbs | ${config.lift_intensity_rms[lift]?.H || 0} reps |\n`;
-      markdown += `| Medium (75% 1RM) | ${config.lift_weights[lift]?.M || 0} lbs | ${config.lift_intensity_rms[lift]?.M || 0} reps |\n`;
-      markdown += `| Light (65% 1RM) | ${config.lift_weights[lift]?.L || 0} lbs | ${config.lift_intensity_rms[lift]?.L || 0} reps |\n`;
+      const heavyWeight = config.lift_weights[lift]?.H;
+      const mediumWeight = config.lift_weights[lift]?.M;
+      const lightWeight = config.lift_weights[lift]?.L;
+      markdown += `| Heavy (85% 1RM) | ${typeof heavyWeight === 'number' ? `${heavyWeight} lbs` : heavyWeight || 'N/A'} | ${config.lift_intensity_rms[lift]?.H || 0} reps |\n`;
+      markdown += `| Medium (75% 1RM) | ${typeof mediumWeight === 'number' ? `${mediumWeight} lbs` : mediumWeight || 'N/A'} | ${config.lift_intensity_rms[lift]?.M || 0} reps |\n`;
+      markdown += `| Light (65% 1RM) | ${typeof lightWeight === 'number' ? `${lightWeight} lbs` : lightWeight || 'N/A'} | ${config.lift_intensity_rms[lift]?.L || 0} reps |\n`;
       markdown += `\n`;
     }
     
@@ -60,7 +76,7 @@ export function generateMarkdown(program: Program, options: ExportOptions): stri
     if (includeCoachInfo && week.dice_rolls) {
       markdown += `**Dice Rolls:**\n\n`;
       for (const [lift, rolls] of Object.entries(week.dice_rolls)) {
-        const liftName = lift.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const liftName = getLiftDisplayName(lift, config?.lift_names);
         markdown += `- ${liftName}: 🎲 ${rolls[0]}, ${rolls[1]}\n`;
       }
       markdown += `\n`;
@@ -80,7 +96,7 @@ export function generateMarkdown(program: Program, options: ExportOptions): stri
           lift: string;
           intensity: string;
           totalReps: number;
-          weight: number;
+          weight: number | string;
           rm: number;
         }> = [];
         
@@ -106,12 +122,12 @@ export function generateMarkdown(program: Program, options: ExportOptions): stri
         
         // Output each lift
         for (const { lift, intensity, totalReps, weight, rm } of liftsWithIntensity) {
-          const liftName = lift.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          const liftName = getLiftDisplayName(lift, config?.lift_names);
           const intensityName = intensity === 'H' ? 'Heavy' : intensity === 'M' ? 'Medium' : 'Light';
           const repScheme = assignReps(rm, totalReps, intensity as 'H' | 'M' | 'L');
           
           markdown += `#### ${liftName} - ${intensityName}\n\n`;
-          markdown += `- **Weight:** ${weight} lbs\n`;
+          markdown += `- **Weight/Variation:** ${typeof weight === 'number' ? `${weight} lbs` : weight}\n`;
           markdown += `- **Total Reps:** ${totalReps}\n`;
           
           if (includeCoachInfo) {
@@ -121,7 +137,8 @@ export function generateMarkdown(program: Program, options: ExportOptions): stri
           markdown += `- **Suggested Rep Scheme:** ${formatRepScheme(repScheme)}\n`;
           
           if (!includeCoachInfo) {
-            markdown += `\n> Complete ${totalReps} total reps at ${weight} lbs. Adjust sets/reps as needed.\n`;
+            const weightDisplay = typeof weight === 'number' ? `${weight} lbs` : weight;
+            markdown += `\n> Complete ${totalReps} total reps at ${weightDisplay}. Adjust sets/reps as needed.\n`;
           }
           
           markdown += `\n`;

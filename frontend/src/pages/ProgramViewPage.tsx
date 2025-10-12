@@ -4,6 +4,17 @@ import { programsAPI } from '../services/api';
 import { Program } from '../types';
 import { assignReps, formatRepScheme } from '../utils/repLadder';
 import { downloadMarkdown } from '../utils/exportMarkdown';
+import { LIFT_LABELS } from './CreateProgramPage';
+
+// Helper function to get display name for a lift
+function getLiftDisplayName(liftKey: string, customNames?: Record<string, string>): string {
+  // First check if there's a custom name
+  if (customNames && customNames[liftKey]) {
+    return customNames[liftKey];
+  }
+  // Fall back to default label or formatted key
+  return LIFT_LABELS[liftKey] || liftKey.replace(/_/g, ' ');
+}
 
 export default function ProgramViewPage() {
   const { id } = useParams<{ id: string }>();
@@ -54,7 +65,7 @@ export default function ProgramViewPage() {
     if (!id || rerolling) return;
     
     const message = lift 
-      ? `Are you sure you want to reroll the dice for ${lift.replace(/_/g, ' ')} in Week ${selectedWeek}?`
+      ? `Are you sure you want to reroll the dice for ${getLiftDisplayName(lift, program?.config?.lift_names)} in Week ${selectedWeek}?`
       : `Are you sure you want to reroll ALL dice for Week ${selectedWeek}? This will generate new dice rolls and rep counts for all lifts.`;
     
     if (!confirm(message)) {
@@ -205,14 +216,14 @@ export default function ProgramViewPage() {
                 <div className="flex flex-wrap gap-2" key={`dice-${selectedWeek}-${refreshKey}`}>
                   {Object.entries(weekData.dice_rolls).map(([lift, rolls]) => (
                     <div key={`${lift}-${rolls[0]}-${rolls[1]}-${refreshKey}`} className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-900 rounded-full border border-gray-300 text-xs">
-                      <span className="font-medium capitalize">{lift.replace(/_/g, ' ')}:</span>
+                      <span className="font-medium">{getLiftDisplayName(lift, program?.config?.lift_names)}:</span>
                       <span>🎲 {rolls[0]}, {rolls[1]}</span>
                       {program.status === 'draft' && (
                         <button
                           onClick={() => handleRerollWeek(lift)}
                           disabled={rerolling}
                           className="ml-1 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={`Reroll ${lift.replace(/_/g, ' ')}`}
+                          title={`Reroll ${getLiftDisplayName(lift, program?.config?.lift_names)}`}
                         >
                           🔄
                         </button>
@@ -363,7 +374,7 @@ interface LiftWithIntensity {
   lift: string;
   intensity: string;
   totalReps: number;
-  weight: number;
+  weight: number | string;
   rm: number;
 }
 
@@ -425,8 +436,8 @@ function DailyView({ program, weekNumber, sessionName }: { program: Program; wee
             return (
               <div key={`${lift}-${intensity}`} className="border-l-4 border-gray-900 pl-4 py-3 bg-gray-50 rounded-r">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-gray-900 capitalize text-lg">
-                    {lift.replace(/_/g, ' ')}
+                  <h4 className="font-semibold text-gray-900 text-lg">
+                    {getLiftDisplayName(lift, program.config?.lift_names)}
                   </h4>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     intensity === 'H' ? 'bg-red-100 text-red-800 border border-red-300' :
@@ -438,8 +449,8 @@ function DailyView({ program, weekNumber, sessionName }: { program: Program; wee
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Weight:</span>
-                    <span className="font-semibold text-gray-900">{weight} lbs</span>
+                    <span className="text-gray-600">Weight/Variation:</span>
+                    <span className="font-semibold text-gray-900">{typeof weight === 'number' ? `${weight} lbs` : weight}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Total Reps:</span>
@@ -527,8 +538,8 @@ function WeeklyView({ program, weekNumber }: { program: Program; weekNumber: num
                     return (
                       <div key={`${lift}-${intensity}`} className="text-xs border-l-2 border-gray-700 pl-2 py-1">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-gray-900 capitalize text-xs">
-                            {lift.replace(/_/g, ' ')}
+                          <span className="font-semibold text-gray-900 text-xs">
+                            {getLiftDisplayName(lift, program.config?.lift_names)}
                           </span>
                           <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                             intensity === 'H' ? 'bg-red-100 text-red-800' :
@@ -539,7 +550,7 @@ function WeeklyView({ program, weekNumber }: { program: Program; weekNumber: num
                           </span>
                         </div>
                         <div className="text-gray-600 space-y-0.5">
-                          <p>{weight} lbs × {totalReps} reps</p>
+                          <p>{typeof weight === 'number' ? `${weight} lbs` : weight} × {totalReps} reps</p>
                           <p className="text-gray-500">{formatRepScheme(repScheme)}</p>
                         </div>
                       </div>
@@ -597,8 +608,8 @@ function OverviewView({ program, weekNumber }: { program: Program; weekNumber: n
               
               return (
                 <tr key={lift} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">
-                    {lift.replace(/_/g, ' ')}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {getLiftDisplayName(lift, program.config?.lift_names)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {data.H || 0}
