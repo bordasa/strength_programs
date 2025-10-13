@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { programsAPI } from '../services/api';
 import { Program } from '../types';
 import { assignReps, formatRepScheme } from '../utils/repLadder';
-import { downloadMarkdown } from '../utils/exportMarkdown';
+import { downloadMarkdown, downloadTableView } from '../utils/exportMarkdown';
 import { LIFT_LABELS } from './CreateProgramPage';
 
 // Helper function to get display name for a lift
@@ -177,10 +177,17 @@ export default function ProgramViewPage() {
                   </button>
                   <button
                     onClick={() => downloadMarkdown(program, false)}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm border-b border-gray-200"
                   >
                     <div className="font-medium text-gray-900">Athlete's View</div>
                     <div className="text-xs text-gray-600">Clean workout plan only</div>
+                  </button>
+                  <button
+                    onClick={() => downloadTableView(program)}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm"
+                  >
+                    <div className="font-medium text-gray-900">Table View</div>
+                    <div className="text-xs text-gray-600">One table per week - print friendly</div>
                   </button>
                 </div>
               </div>
@@ -450,7 +457,7 @@ function DailyView({ program, weekNumber, sessionName }: { program: Program; wee
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Weight/Variation:</span>
-                    <span className="font-semibold text-gray-900">{typeof weight === 'number' ? `${weight} lbs` : weight}</span>
+                    <span className="font-semibold text-gray-900">{weight}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Total Reps:</span>
@@ -550,7 +557,7 @@ function WeeklyView({ program, weekNumber }: { program: Program; weekNumber: num
                           </span>
                         </div>
                         <div className="text-gray-600 space-y-0.5">
-                          <p>{typeof weight === 'number' ? `${weight} lbs` : weight} × {totalReps} reps</p>
+                          <p>{weight} × {totalReps} reps</p>
                           <p className="text-gray-500">{formatRepScheme(repScheme)}</p>
                         </div>
                       </div>
